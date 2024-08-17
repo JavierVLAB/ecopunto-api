@@ -131,3 +131,9 @@ st.metric(label="Incidencias",
             delta="OK" ,
             delta_color="normal",
             help="Porcentaje de la batería LiPo")
+
+st.metric(label="Abandonos", 
+            value=results["total_quits"], 
+            delta="OK" ,
+            delta_color="normal",
+            help="Porcentaje de la batería LiPo")

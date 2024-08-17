@@ -1,0 +1,2 @@
+Super importante
+hay que coger el archivo de credenciales.json y comvertirlo y transformalo en una sola linea, luego todos los " cambiarlos por \"  y todos los \n cambiarlos por \\n, luego todo eso ponerlo igual a la variable de entorno y la variable no puede tener espacio
