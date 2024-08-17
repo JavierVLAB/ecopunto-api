@@ -10,32 +10,37 @@ import json
 
 import asyncio
 
-def is_local():
-    # Puedes verificar una variable de entorno específica para diferenciar entre local y nube
-    return os.getenv("IS_LOCAL", "true") == "true"
-
-# Uso en tu aplicación Firebase
-firebase_app = None
 
 def initialize_firebase_app():
-    # Verifica si Firebase ya está inicializado
+    # Verificar si Firebase ya está inicializado
     try:
         firebase_app = firebase_admin.get_app()
     except ValueError:
-        # Si no está inicializado, inicializa con las credenciales correctas
-        if is_local():
-            cred = credentials.Certificate("secrets/ecopunto.json")
+        # Verificar si el archivo de credenciales existe en local
+        firebase_creds_path = "secrets/ecopunto.json"
+        
+        if os.path.exists(firebase_creds_path):
+            # En local: usa el archivo JSON
+            cred = credentials.Certificate(firebase_creds_path)
         else:
+            # En la nube: usa los secretos de Streamlit
             firebase_creds_dict = json.loads(st.secrets["firebase_service_account"])
             cred = credentials.Certificate(firebase_creds_dict)
 
+        # Inicializar Firebase con las credenciales adecuadas
         firebase_app = firebase_admin.initialize_app(cred)
 
     return firebase_app
 
+
+
 # Inicializa la app Firebase
 firebase_app = initialize_firebase_app()
+
+# Inicializa Firestore
 db = firestore.client(firebase_app)
+
+
 
 ###################
 
@@ -117,7 +122,7 @@ st.metric(label="Conexiones totales",
             help="Porcentaje de la batería LiPo")
 
 st.metric(label="Incidencias", 
-            value=results["total_incident"], 
+            value=results["total_incidents"], 
             delta="OK" ,
             delta_color="normal",
             help="Porcentaje de la batería LiPo")
