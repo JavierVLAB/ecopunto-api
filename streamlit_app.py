@@ -17,7 +17,11 @@ def initialize_firebase_app():
         firebase_app = firebase_admin.get_app()
     except ValueError:
         # Verificar si el archivo de credenciales existe en local
-        firebase_creds_path = "secrets/ecopunto.json"
+        firebase_creds_path = None
+        try:
+            firebase_creds_path = "secrets/ecopunto.json"
+        except:
+            pass
         
         if os.path.exists(firebase_creds_path):
             # En local: usa el archivo JSON
