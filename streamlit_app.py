@@ -10,14 +10,12 @@ import json
 
 import asyncio
 
-print(st.secrets["firebase_service_account"])
-
 
 def initialize_firebase_app():
     # Verificar si Firebase ya está inicializado
     try:
         firebase_app = firebase_admin.get_app()
-    except ValueError:
+    except:
         # Verificar si el archivo de credenciales existe en local
         firebase_creds_path = None
         try:
@@ -31,6 +29,7 @@ def initialize_firebase_app():
         else:
             # En la nube: usa los secretos de Streamlit
             firebase_creds_dict = json.loads(st.secrets["firebase_service_account"])
+            print(firebase_creds_dict)
             cred = credentials.Certificate(firebase_creds_dict)
 
         # Inicializar Firebase con las credenciales adecuadas
