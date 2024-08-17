@@ -10,6 +10,8 @@ import json
 
 import asyncio
 
+print(st.secrets["firebase_service_account"])
+
 
 def initialize_firebase_app():
     # Verificar si Firebase ya está inicializado
