@@ -10,6 +10,9 @@ import json
 
 import asyncio
 
+import pandas as pd
+import numpy as np
+
 
 def initialize_firebase_app():
     # Verificar si Firebase ya está inicializado
@@ -70,15 +73,16 @@ async def get_metrics():
             init_page_connections[init_page] = 1
 
     # Número total de incidencias reportadas
-    total_incidents_query = events_ref.where('event_name', '==', 'Incident')
+    total_incidents_query = events_ref.where('event_name', '==', 'Success')
     total_incidents = len([doc for doc in total_incidents_query.stream()])
 
-    # Incidencias reportadas y su conteo
-    incident_reports_query = events_ref.where('event_name', '==', 'Incident')
+    # Incidencias reportadas y su conteoStar
+    incident_reports_query = events_ref.where('event_name', '==', 'Success')
     incident_reports = {}
     for doc in incident_reports_query.stream():
         data = doc.to_dict()
         incidencia = data.get('incidencia')
+        print(incidencia)
         if incidencia in incident_reports:
             incident_reports[incidencia] += 1
         else:
@@ -110,30 +114,66 @@ async def get_metrics():
 
 ###################
 
-st.markdown("# Estado de los contenedores - Ecovidrio 2023")
+st.markdown("# Estadistica de uso de APP Ecopunto")
 
 huso_horario_utc_2 = pytz.timezone('Europe/Madrid')
 time_now = datetime.datetime.now().astimezone(huso_horario_utc_2)
-st.markdown("### " + time_now.strftime("%H:%M:%S - %d/%m/%Y"))
+#st.markdown("### " + time_now.strftime("%H:%M:%S - %d/%m/%Y"))
 
 print("ssss")
 results = asyncio.run(get_metrics())
 print(results)
 
-st.metric(label="Conexiones totales", 
+col1, col2 = st.columns([1, 3])
+
+col1.markdown("### Conexiones")
+col1.metric(label="Conexiones totales", 
             value=results["total_connections"], 
             delta="OK" ,
             delta_color="normal",
             help="Porcentaje de la batería LiPo")
 
-st.metric(label="Incidencias", 
+
+# Convertir los datos en un DataFrame
+df1 = pd.DataFrame(list(results["init_page_connections"].items()), columns=['Categoría', 'Cantidad'])
+df1.set_index('Categoría', inplace=True)
+
+col2.markdown("### Número de conexiones por entrada (Contenedor o Local)")
+col2.bar_chart(df1, horizontal=True)
+
+
+###########
+col3, col4 = st.columns([1, 3])
+
+col3.markdown("### Incidencias")
+col3.metric(label="Incidencias", 
             value=results["total_incidents"], 
             delta="OK" ,
             delta_color="normal",
             help="Porcentaje de la batería LiPo")
 
-st.metric(label="Abandonos", 
+df2 = pd.DataFrame(list(results["incident_reports"].items()), columns=['Categoría', 'Cantidad'])
+df2.set_index('Categoría', inplace=True)
+
+col4.markdown("### Número de incidencias por tipo")
+col4.bar_chart(df2, horizontal=True)
+
+
+
+###########
+col5, col6 = st.columns([1, 3])
+
+col5.markdown("### Abandonos")
+col5.metric(label="Abandonos", 
             value=results["total_quits"], 
             delta="OK" ,
             delta_color="normal",
-            help="Porcentaje de la batería LiPo")
+            help="Número total de abandonos en la app")
+
+df3 = pd.DataFrame(list(results["incident_reports"].items()), columns=['Categoría', 'Cantidad'])
+df3.set_index('Categoría', inplace=True)
+
+col6.markdown("### Abandonos por página")
+col6.bar_chart(df3, horizontal=True)
+
+
