@@ -13,18 +13,18 @@ import asyncio
 import pandas as pd
 import numpy as np
 
+is_local = False
+firebase_creds_path = "secrets/ecopunto.json"
+
+
 
 def initialize_firebase_app():
     # Verificar si Firebase ya está inicializado
+    
     try:
         firebase_app = firebase_admin.get_app()
     except:
         # Verificar si el archivo de credenciales existe en local
-        firebase_creds_path = None
-        try:
-            firebase_creds_path = "secrets/ecopunto.json"
-        except:
-            pass
         
         if os.path.exists(firebase_creds_path):
             # En local: usa el archivo JSON
@@ -170,10 +170,76 @@ col5.metric(label="Abandonos",
             delta_color="normal",
             help="Número total de abandonos en la app")
 
-df3 = pd.DataFrame(list(results["incident_reports"].items()), columns=['Categoría', 'Cantidad'])
+df3 = pd.DataFrame(list(results["abandonments"].items()), columns=['Categoría', 'Cantidad'])
 df3.set_index('Categoría', inplace=True)
 
 col6.markdown("### Abandonos por página")
 col6.bar_chart(df3, horizontal=True)
 
 
+# Función para obtener y procesar datos de Firestore
+def fetch_and_process_track_events(collection_name):
+    collection_ref = db.collection(collection_name)
+    query = collection_ref.where("event_name", "==", "Track")
+    docs = query.stream()
+
+    # Extraer los datos y agrupar por incidencia y actual_page
+    data = []
+    for doc in docs:
+        doc_data = doc.to_dict()
+        if 'incidencia' in doc_data and 'actual_page' in doc_data:
+            data.append({
+                'incidencia': doc_data['incidencia'],
+                'actual_page': doc_data['actual_page']
+            })
+    
+    df = pd.DataFrame(data)
+    return df
+
+# Obtener los datos
+collection_name = "events"
+df = fetch_and_process_track_events(collection_name)
+
+if not df.empty:
+    # Obtener todas las incidencias únicas
+    incidencias = df['incidencia'].unique()
+
+    # Crear un gráfico por cada incidencia
+    for incidencia in incidencias:
+        st.subheader(f"Incidencia: {incidencia}")
+        
+        # Filtrar el DataFrame por la incidencia actual
+        df_filtered = df[df['incidencia'] == incidencia]
+        
+        # Contar el número de ocurrencias por actual_page
+        df_count = df_filtered['actual_page'].value_counts().reset_index()
+        df_count.columns = ['actual_page', 'count']
+        
+        # Generar el gráfico utilizando st.bar_chart
+        
+        st.bar_chart(df_count.set_index('actual_page'), horizontal=True)
+else:
+    st.warning("No se encontraron eventos con event_name = 'track'")
+
+
+
+#########
+def delete_documents():
+    collection_ref = db.collection("events")
+
+    query_hola = collection_ref.where("event_name", "==", "App Start")
+    docs_hola = query_hola.stream()
+    
+    for doc in docs_hola:
+        doc.reference.delete()
+
+    query_chao = collection_ref.where("event_name", "==", "Track")
+    docs_chao = query_chao.stream()
+    
+    for doc in docs_chao:
+        doc.reference.delete()
+
+if os.path.exists(firebase_creds_path):
+    if st.button("Delete Documents"):
+        delete_documents()
+        st.success(f"Listo")
