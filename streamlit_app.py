@@ -1,6 +1,5 @@
 import streamlit as st
 import time
-import datetime
 import pytz
 
 import firebase_admin
@@ -12,6 +11,11 @@ import asyncio
 
 import pandas as pd
 import numpy as np
+
+import matplotlib.pyplot as plt
+import july
+from july.utils import date_range
+from datetime import datetime, timedelta
 
 is_local = False
 firebase_creds_path = "secrets/ecopunto.json"
@@ -47,8 +51,6 @@ firebase_app = initialize_firebase_app()
 
 # Inicializa Firestore
 db = firestore.client(firebase_app)
-
-
 
 ###################
 
@@ -114,32 +116,95 @@ async def get_metrics():
 
 ###################
 
-st.markdown("# Estadistica de uso de APP Ecopunto")
+st.markdown("# Estadística de uso de APP Ecopunto")
 
 huso_horario_utc_2 = pytz.timezone('Europe/Madrid')
-time_now = datetime.datetime.now().astimezone(huso_horario_utc_2)
+time_now = datetime.now().astimezone(huso_horario_utc_2)
 #st.markdown("### " + time_now.strftime("%H:%M:%S - %d/%m/%Y"))
 
-print("ssss")
-results = asyncio.run(get_metrics())
-print(results)
+
+
+# Función para obtener y procesar datos de Firestore
+def fetch_and_process_track_events(collection_name):
+    collection_ref = db.collection(collection_name)
+    query = collection_ref.where("event_name", "==", "Track")
+    docs = query.stream()
+
+    # Extraer los datos y agrupar por incidencia y actual_page
+    data = []
+    for doc in docs:
+        doc_data = doc.to_dict()
+
+        if 'incidencia' in doc_data and 'actual_page' in doc_data:
+            data.append({
+                'incidencia': doc_data['incidencia'],
+                'actual_page': doc_data['actual_page']
+            })
+
+        # Número total de incidencias reportadas
+    total_incidents_query = collection_ref.where('event_name', '==', 'Success')
+    total_incidents = len([doc for doc in total_incidents_query.stream()])
+
+    # Incidencias reportadas y su conteo
+    incident_reports_query = collection_ref.where('event_name', '==', 'Success')
+    incident_reports = {}
+
+    for doc in incident_reports_query.stream():
+        data1 = doc.to_dict()
+        incidencia = data1.get('incidencia')
+        #print(incidencia)
+        if incidencia in incident_reports:
+            incident_reports[incidencia] += 1
+        else:
+            incident_reports[incidencia] = 1
+
+    data2 = []
+    for doc in incident_reports_query.stream():
+        doc_data = doc.to_dict()
+
+        if 'timestamp' in doc_data:
+            data2.append({
+                'timestamp': doc_data['timestamp']
+            })
+
+    
+    df_timestamp = pd.DataFrame(data2)
+
+    if not df_timestamp.empty:
+        df_timestamp['date'] = pd.to_datetime(df_timestamp['timestamp']).dt.date
+
+    
+    df = pd.DataFrame(data)
+    extra = {
+        "total_incidents": total_incidents,
+        "incident_reports": incident_reports
+    }
+    return df, extra, df_timestamp
+
+
+# Obtener los datos
+collection_name = "events"
+df, results, df_timestap = fetch_and_process_track_events(collection_name)
+
+# Obtener todas las incidencias únicas
+incidencias = df['incidencia'].unique()
 
 col1, col2 = st.columns([1, 3])
+conexiones = df[df['incidencia'] == '']
+print(conexiones.shape)
 
 col1.markdown("### Conexiones")
 col1.metric(label="Conexiones totales", 
-            value=results["total_connections"], 
-            delta="OK" ,
-            delta_color="normal",
-            help="Porcentaje de la batería LiPo")
-
+            value=conexiones.shape[0], 
+            help='Este es el número total de veces que se han abierto las páginas "/contenedor" y "/local"')
 
 # Convertir los datos en un DataFrame
-df1 = pd.DataFrame(list(results["init_page_connections"].items()), columns=['Categoría', 'Cantidad'])
-df1.set_index('Categoría', inplace=True)
+conexiones_count = conexiones['actual_page'].value_counts().reset_index()
+conexiones_count.columns = ['actual_page', 'count']
+# conexiones_count.set_index('Categoría', inplace=True)
 
 col2.markdown("### Número de conexiones por entrada (Contenedor o Local)")
-col2.bar_chart(df1, horizontal=True)
+col2.bar_chart(conexiones_count.set_index('actual_page'), horizontal=True)
 
 
 ###########
@@ -160,52 +225,17 @@ col4.bar_chart(df2, horizontal=True)
 
 
 
-###########
-col5, col6 = st.columns([1, 3])
+######
 
-col5.markdown("### Abandonos")
-col5.metric(label="Abandonos", 
-            value=results["total_quits"], 
-            delta="OK" ,
-            delta_color="normal",
-            help="Número total de abandonos en la app")
-
-df3 = pd.DataFrame(list(results["abandonments"].items()), columns=['Categoría', 'Cantidad'])
-df3.set_index('Categoría', inplace=True)
-
-col6.markdown("### Abandonos por página")
-col6.bar_chart(df3, horizontal=True)
+st.divider()
+st.write('##')
 
 
-# Función para obtener y procesar datos de Firestore
-def fetch_and_process_track_events(collection_name):
-    collection_ref = db.collection(collection_name)
-    query = collection_ref.where("event_name", "==", "Track")
-    docs = query.stream()
+st.write('## Visitas de las páginas por cada incidencia')
 
-    # Extraer los datos y agrupar por incidencia y actual_page
-    data = []
-    for doc in docs:
-        doc_data = doc.to_dict()
-        if 'incidencia' in doc_data and 'actual_page' in doc_data:
-            data.append({
-                'incidencia': doc_data['incidencia'],
-                'actual_page': doc_data['actual_page']
-            })
-    
-    df = pd.DataFrame(data)
-    return df
-
-# Obtener los datos
-collection_name = "events"
-df = fetch_and_process_track_events(collection_name)
-
-if not df.empty:
-    # Obtener todas las incidencias únicas
-    incidencias = df['incidencia'].unique()
-
-    # Crear un gráfico por cada incidencia
-    for incidencia in incidencias:
+for incidencia in incidencias:
+        if incidencia == '':
+            continue
         st.subheader(f"Incidencia: {incidencia}")
         
         # Filtrar el DataFrame por la incidencia actual
@@ -218,16 +248,67 @@ if not df.empty:
         # Generar el gráfico utilizando st.bar_chart
         
         st.bar_chart(df_count.set_index('actual_page'), horizontal=True)
-else:
-    st.warning("No se encontraron eventos con event_name = 'track'")
 
 
+
+
+
+###############
+
+st.divider()
+st.write('##')
+
+dates = date_range("2024-08-01", "2024-12-31")
+data3 = np.random.randint(0, 14, len(dates))
+
+start_date = datetime(2024, 8, 1)
+end_date = datetime(2024, 12, 31)
+
+# Generar todas las fechas dentro del rango deseado
+all_dates = pd.date_range(start=start_date, end=end_date).date
+
+# Crear un DataFrame con todas las fechas
+all_dates_df = pd.DataFrame({'date': all_dates})
+
+df_new = df_timestap.groupby('date').size().reset_index(name='count')
+
+print(df_new)
+# Combinar con los datos existentes
+
+df_new = pd.merge(all_dates_df, df_new, on='date', how='left')
+
+df_new['count'] = df_new.apply(lambda row: 0 if pd.isna(row['count']) else row['count'], axis=1)
+
+dates = df_new['date'].tolist()
+counts = df_new['count'].tolist()
+
+
+fig, ax = plt.subplots()
+
+
+july.heatmap(
+    dates=dates,
+    data=counts,
+    cmap='github',
+    month_grid=True,
+    horizontal=True,
+    value_label=False,
+    date_label=True,
+    weekday_label=True,
+    month_label=True,
+    colorbar=True,
+    fontsize=6,
+    ax=ax   ## <- Tell July to put the heatmap in that Axes
+)
+st.markdown("## Número de conexiones por día")
+st.pyplot(fig)
+#st.pyplot(july)
 
 #########
 def delete_documents():
     collection_ref = db.collection("events")
 
-    query_hola = collection_ref.where("event_name", "==", "App Start")
+    query_hola = collection_ref.where("event_name", "==", "Success")
     docs_hola = query_hola.stream()
     
     for doc in docs_hola:
@@ -243,3 +324,4 @@ if os.path.exists(firebase_creds_path):
     if st.button("Delete Documents"):
         delete_documents()
         st.success(f"Listo")
+
