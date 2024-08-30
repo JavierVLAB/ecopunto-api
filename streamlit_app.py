@@ -12,8 +12,8 @@ from july.utils import date_range
 from datetime import datetime, timedelta
 
 import warnings
-import matplotlib.cbook
-warnings.filterwarnings("ignore", category=matplotlib.cbook.MatplotlibDeprecationWarning)
+import matplotlib
+warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
 
 is_local = False
 firebase_creds_path = "secrets/ecopunto.json"
