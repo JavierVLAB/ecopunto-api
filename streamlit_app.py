@@ -1,17 +1,11 @@
 import streamlit as st
-import time
 import pytz
-
 import firebase_admin
 from firebase_admin import credentials, firestore
 import os
 import json
-
-import asyncio
-
 import pandas as pd
 import numpy as np
-
 import matplotlib.pyplot as plt
 import july
 from july.utils import date_range
@@ -19,8 +13,6 @@ from datetime import datetime, timedelta
 
 is_local = False
 firebase_creds_path = "secrets/ecopunto.json"
-
-
 
 def initialize_firebase_app():
     # Verificar si Firebase ya está inicializado
@@ -44,8 +36,6 @@ def initialize_firebase_app():
 
     return firebase_app
 
-
-
 # Inicializa la app Firebase
 firebase_app = initialize_firebase_app()
 
@@ -56,7 +46,6 @@ db = firestore.client(firebase_app)
 
 async def get_metrics():
 
-    # Aquí NO necesitas inicializar Firestore de nuevo, solo usar `db`
     events_ref = db.collection('events')
 
     # Número total de conexiones
@@ -123,7 +112,6 @@ time_now = datetime.now().astimezone(huso_horario_utc_2)
 #st.markdown("### " + time_now.strftime("%H:%M:%S - %d/%m/%Y"))
 
 
-
 # Función para obtener y procesar datos de Firestore
 def fetch_and_process_track_events(collection_name):
     collection_ref = db.collection(collection_name)
@@ -141,7 +129,7 @@ def fetch_and_process_track_events(collection_name):
                 'actual_page': doc_data['actual_page']
             })
 
-        # Número total de incidencias reportadas
+    # Número total de incidencias reportadas
     total_incidents_query = collection_ref.where('event_name', '==', 'Success')
     total_incidents = len([doc for doc in total_incidents_query.stream()])
 
