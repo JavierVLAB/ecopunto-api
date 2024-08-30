@@ -1,0 +1,3 @@
+firebase-admin
+july==0.1.3
+matplotlib==3.7.5
