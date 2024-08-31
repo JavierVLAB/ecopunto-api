@@ -46,66 +46,6 @@ firebase_app = initialize_firebase_app()
 # Inicializa Firestore
 db = firestore.client(firebase_app)
 
-###################
-
-async def get_metrics():
-
-    events_ref = db.collection('events')
-
-    # Número total de conexiones
-    total_connections_query = events_ref.where('event_name', '==', 'App Start')
-    total_connections = len([doc for doc in total_connections_query.stream()])
-
-    # Conexiones en "Contenedor" y "Local"
-    init_page_connections_query = events_ref.where('event_name', '==', 'App Start')
-    init_page_connections = {}
-    for doc in init_page_connections_query.stream():
-        data = doc.to_dict()
-        init_page = data.get('init_page')
-        if init_page in init_page_connections:
-            init_page_connections[init_page] += 1
-        else:
-            init_page_connections[init_page] = 1
-
-    # Número total de incidencias reportadas
-    total_incidents_query = events_ref.where('event_name', '==', 'Success')
-    total_incidents = len([doc for doc in total_incidents_query.stream()])
-
-    # Incidencias reportadas y su conteoStar
-    incident_reports_query = events_ref.where('event_name', '==', 'Success')
-    incident_reports = {}
-    for doc in incident_reports_query.stream():
-        data = doc.to_dict()
-        incidencia = data.get('incidencia')
-        print(incidencia)
-        if incidencia in incident_reports:
-            incident_reports[incidencia] += 1
-        else:
-            incident_reports[incidencia] = 1
-
-    # Abandonos y en qué página ocurrieron
-    abandonments_query = events_ref.where('event_name', '==', 'Quit')
-    abandonments = {}
-    for doc in abandonments_query.stream():
-        data = doc.to_dict()
-        actual_page = data.get('actual_page')
-        if actual_page in abandonments:
-            abandonments[actual_page] += 1
-        else:
-            abandonments[actual_page] = 1
-
-    # Número total de abandonos
-    total_quits = len([doc for doc in abandonments_query.stream()])
-
-    return {
-        "total_connections": total_connections,
-        "init_page_connections": init_page_connections,
-        "total_incidents": total_incidents,
-        "incident_reports": incident_reports,
-        "abandonments": abandonments,
-        "total_quits": total_quits
-    }
-
 
 ###################
 
@@ -134,11 +74,11 @@ def fetch_and_process_track_events(collection_name):
             })
 
     # Número total de incidencias reportadas
-    total_incidents_query = collection_ref.where('event_name', '==', 'Success')
+    total_incidents_query = collection_ref.where("event_name", "==", "Success")
     total_incidents = len([doc for doc in total_incidents_query.stream()])
 
     # Incidencias reportadas y su conteo
-    incident_reports_query = collection_ref.where('event_name', '==', 'Success')
+    incident_reports_query = collection_ref.where("event_name", "==", "Success")
     incident_reports = {}
 
     for doc in incident_reports_query.stream():
