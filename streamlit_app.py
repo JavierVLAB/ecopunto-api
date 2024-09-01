@@ -147,7 +147,7 @@ col3.metric(label="Incidencias",
             value=results["total_incidents"], 
             delta="OK" ,
             delta_color="normal",
-            help="Porcentaje de la batería LiPo")
+            help="Este es el número de incidencias que se han enviado exitosamente")
 
 df2 = pd.DataFrame(list(results["incident_reports"].items()), columns=['Categoría', 'Cantidad'])
 df2.set_index('Categoría', inplace=True)
