@@ -107,6 +107,7 @@ def fetch_and_process_track_events(collection_name):
 
     
     df = pd.DataFrame(data)
+    #print(df)
     extra = {
         "total_incidents": total_incidents,
         "incident_reports": incident_reports
@@ -123,7 +124,7 @@ incidencias = df['incidencia'].unique()
 
 col1, col2 = st.columns([1, 3])
 conexiones = df[df['incidencia'] == '']
-print(conexiones.shape)
+print(conexiones)
 
 col1.markdown("### Conexiones")
 col1.metric(label="Conexiones totales", 
@@ -138,16 +139,17 @@ conexiones_count.columns = ['actual_page', 'count']
 col2.markdown("### Número de conexiones por entrada (Contenedor o Local)")
 col2.bar_chart(conexiones_count.set_index('actual_page'), horizontal=True)
 
+print(results)
 
 ###########
 col3, col4 = st.columns([1, 3])
 
 col3.markdown("### Incidencias")
 col3.metric(label="Incidencias", 
-            value=results["total_incidents"], 
+            value=results["total_incidents"]-results['incident_reports']['whatsapp'], 
             delta="OK" ,
             delta_color="normal",
-            help="Este es el número de incidencias que se han enviado exitosamente")
+            help="Este es el número de incidencias que se han enviado exitosamente. Este valor es el valor total de envios sucess menos el número de envios de whatsapp")
 
 df2 = pd.DataFrame(list(results["incident_reports"].items()), columns=['Categoría', 'Cantidad'])
 df2.set_index('Categoría', inplace=True)
@@ -240,17 +242,20 @@ st.pyplot(fig)
 def delete_documents():
     collection_ref = db.collection("events")
 
-    query_hola = collection_ref.where("event_name", "==", "Success")
-    docs_hola = query_hola.stream()
+    #query_hola = collection_ref.where("event_name", "==", "Success")
+    #docs_hola = query_hola.stream()
     
-    for doc in docs_hola:
-        doc.reference.delete()
+    #for doc in docs_hola:
+    #    doc.reference.delete()
 
-    query_chao = collection_ref.where("event_name", "==", "Track")
-    docs_chao = query_chao.stream()
+    #query_chao = collection_ref.where("actual_page", "==", "local")
+    #docs_chao = query_chao.stream()
     
-    for doc in docs_chao:
-        doc.reference.delete()
+    #counter = 0
+    #for doc in docs_chao:
+    #    if counter < 40:
+    #        doc.reference.delete()
+    #        counter = counter + 1
 
 if os.path.exists(firebase_creds_path):
     if st.button("Delete Documents"):
