@@ -81,10 +81,11 @@ def fetch_and_process_track_events(collection_name):
     incident_reports_query = collection_ref.where("event_name", "==", "Success")
     incident_reports = {}
 
+
     for doc in incident_reports_query.stream():
         data1 = doc.to_dict()
         incidencia = data1.get('incidencia')
-        #print(incidencia)
+        print(data1)
         if incidencia in incident_reports:
             incident_reports[incidencia] += 1
         else:
@@ -124,22 +125,29 @@ incidencias = df['incidencia'].unique()
 
 col1, col2 = st.columns([1, 3])
 conexiones = df[df['incidencia'] == '']
-print(conexiones)
+#print(conexiones)
+
+# Filtrar para las páginas 'local' y 'contenedor' en conexiones_count
+conexiones_count = conexiones['actual_page'].value_counts().reset_index()
+conexiones_count.columns = ['actual_page', 'count']
+conexiones_filtered = conexiones_count[conexiones_count['actual_page'].isin(['local', 'contenedor'])]
+
+# Calcular el total solo de las páginas 'local' y 'contenedor'
+total_conexiones = conexiones_filtered['count'].sum()
 
 col1.markdown("### Conexiones")
 col1.metric(label="Conexiones totales", 
-            value=conexiones.shape[0], 
+            value=total_conexiones, 
             help='Este es el número total de veces que se han abierto las páginas "/contenedor" y "/local"')
 
-# Convertir los datos en un DataFrame
-conexiones_count = conexiones['actual_page'].value_counts().reset_index()
-conexiones_count.columns = ['actual_page', 'count']
-# conexiones_count.set_index('Categoría', inplace=True)
+
+
+
 
 col2.markdown("### Número de conexiones por entrada (Contenedor o Local)")
-col2.bar_chart(conexiones_count.set_index('actual_page'), horizontal=True)
+col2.bar_chart(conexiones_filtered.set_index('actual_page'), horizontal=True)
 
-print(results)
+#print(results)
 
 ###########
 col3, col4 = st.columns([1, 3])
