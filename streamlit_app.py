@@ -7,6 +7,7 @@ import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import july
 from july.utils import date_range
 from datetime import datetime, timedelta
@@ -227,11 +228,16 @@ counts = df_new['count'].tolist()
 
 fig, ax = plt.subplots()
 
+# Define el mapa de colores personalizado
+custom_cmap = mcolors.LinearSegmentedColormap.from_list(
+    "custom_github", ["white", "#c6e48b", "#239a3b", "#196127"], N=256
+)
 
 july.heatmap(
     dates=dates,
     data=counts,
-    cmap='github',
+    #cmap='github',
+    cmap=custom_cmap,
     month_grid=True,
     horizontal=True,
     value_label=False,
